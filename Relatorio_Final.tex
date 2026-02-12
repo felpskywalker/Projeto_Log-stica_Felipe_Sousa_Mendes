@@ -1,0 +1,385 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Preâmbulo (Copiado de main.tex) ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{float}
+
+% Configurações de margem
+\geometry{left=3cm, right=2cm, top=3cm, bottom=2cm}
+
+% Configuração para código Python
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    commentstyle=\color{green!60!black},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    backgroundcolor=\color{gray!10},
+    showspaces=false,
+    showstringspaces=false,
+    frame=single,
+    tabsize=2,
+    breaklines=true,
+    breakatwhitespace=false,
+}
+
+% Dados do Título
+\title{\textbf{Projeto 1: Modelagem e Simulação de Estoques sob Incerteza de Demanda e Lead Time} \\[0.5em] \large Logística: Turma de Verão 2026}
+\author{Felipe Sousa Mendes}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Resumo Executivo}
+
+O presente relatório detalha a otimização da política de gestão de estoques de um Centro de Distribuição (CD) farmacêutico, transitando de uma abordagem estática (determinística) para uma modelagem estocástica dinâmica fundamentada na \textbf{Engenharia de Sistemas Logísticos}.
+
+\subsection{Contexto e Desafio}
+
+A operação enfrentava um dilema clássico: como garantir a disponibilidade de medicamentos críticos sem inflar os custos de armazenagem. A análise inicial revelou que a utilização do Lote Econômico de Compra (EOQ) sem a devida proteção contra incertezas resultava em um desempenho operacional inaceitável em ambientes reais.
+
+\subsection{Metodologia e Descobertas}
+
+Através de uma \textbf{Simulação de Eventos Discretos} (Seed 111), comparamos o modelo tradicional com uma política de Ponto de Ressuprimento (ROP) otimizada por \textbf{Estoque de Segurança (SS)}. Os principais achados foram:
+
+\begin{itemize}
+    \item \textbf{Falha do Modelo Determinístico:} Ao ignorar a variabilidade da demanda e os atrasos do fornecedor, o sistema apresentou um custo de falta de \textbf{R\$ 45.060,00}, com rupturas frequentes de estoque.
+    \item \textbf{Eficiência Estocástica:} A implementação de um Estoque de Segurança de \textbf{257 unidades} (para um Nível de Serviço Alvo de 95\%) reduziu o custo total logístico em \textbf{74\%}, caindo de R\$ 52.326,30 para \textbf{R\$ 13.463,82}.
+    \item \textbf{Desempenho Real:} O modelo proposto alcançou um Nível de Serviço de \textbf{91,7\%}, estabilizando a operação mesmo diante de picos de demanda e instabilidades no \textit{Lead Time}.
+\end{itemize}
+
+\subsection{Decisão Recomendada}
+
+Com base na análise de \textit{trade-offs} e na fronteira eficiente de custos, recomenda-se:
+
+\begin{enumerate}
+    \item \textbf{Adoção Imediata do Modelo Estocástico:} Fixar o Ponto de Ressuprimento (ROP) em \textbf{757 unidades} para absorver a variabilidade do sistema.
+    \item \textbf{Monitoramento da Variabilidade:} Manter o monitoramento contínuo do desvio padrão do fornecedor, visto que a sensibilidade do sistema aponta que reduções na incerteza do \textit{Lead Time} permitem liberações significativas de capital de giro retido em estoque de segurança.
+\end{enumerate}
+
+\section{Contexto e Formulação do Problema (Síntese)}
+
+O objeto de estudo deste projeto é a operação logística da ElectroLog Distribuidora, focada no gerenciamento de estoques de componentes de alto giro e criticidade, representados pelo SKU-X100. Este item possui demanda volátil e é estratégico para o faturamento da empresa, exigindo níveis de disponibilidade superiores a 90\%.
+
+\subsection{O Problema Logístico}
+
+A gestão atual utiliza uma abordagem determinística baseada na média histórica de vendas e prazos de entrega. No entanto, a operação real enfrenta duas fontes de incerteza não capturadas pelo modelo atual:
+
+\begin{enumerate}
+    \item Variabilidade da Demanda: Oscilações diárias que superam o consumo médio previsto.
+    \item Incerteza do Suprimento: Atrasos aleatórios na entrega (\textit{Lead Time}) por parte do fornecedor.
+\end{enumerate}
+
+A incapacidade do modelo atual em absorver essas variações resulta em rupturas frequentes de estoque (\textit{Stockouts}), gerando custos de oportunidade e multas contratuais, ao mesmo tempo em que períodos de baixa demanda geram custos excessivos de armazenagem.
+
+\subsection{Justificativa do Tópico Central}
+
+A escolha do Tópico IV (Gestão de Estoques sob Incerteza) como eixo central deste trabalho justifica-se pela necessidade de abandonar premissas estáticas. A aplicação de modelos estocásticos permite calcular cientificamente o Estoque de Segurança (SS) necessário para atingir o Nível de Serviço Alvo, transformando a incerteza em uma variável de decisão financeira calculada, e não um risco operacional não gerenciado.
+
+\subsection{Objetivos do Projeto}
+
+O objetivo principal é validar, através de simulação computacional, uma política de ressuprimento $(s, Q)$ que minimize o Custo Total Logístico.
+
+As hipóteses de trabalho são:
+
+\begin{itemize}
+    \item A demanda diária e o tempo de entrega são variáveis aleatórias independentes e normalmente distribuídas.
+    \item O custo de falta (\textit{shortage cost}) é significativamente superior ao custo de manutenção, justificando o investimento em estoque de segurança.
+\end{itemize}
+
+\section{Dados e Preparação (C3)}
+
+\textit{A validade de uma simulação de eventos discretos depende diretamente da qualidade dos dados de entrada. Para este projeto, utilizou-se a geração de variáveis aleatórias sintéticas controladas por uma semente fixa (\textbf{Seed 111}), garantindo que os cenários de estresse sejam reprodutíveis e auditáveis.}
+
+\subsection{Caracterização da Demanda (Figura 1)}
+
+\textit{A demanda diária do SKU-X100 foi modelada como uma variável aleatória contínua seguindo uma Distribuição Normal ($N \sim 100, 20$).}
+
+\textit{A análise do histograma gerado (\textbf{Figura 1}) revela uma dispersão simétrica. Embora a frequência modal esteja centralizada em 100 unidades, a simulação produziu dias de pico com consumo superior a 140 unidades.}
+
+\begin{itemize}
+    \item \textbf{Implicação:} Modelos baseados apenas na média ignoram essas caudas à direita (picos de consumo), que são justamente os dias causadores de ruptura de estoque.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{graficos/fig1_histograma_demanda.png}
+    \caption{Histograma da Demanda - Barra Azul}
+    \label{fig:fig1}
+\end{figure}
+
+\subsection{Variabilidade do Suprimento (Figura 2)}
+
+\textit{O tempo de ressuprimento (Lead Time) provou ser um fator crítico de incerteza. Modelado com média de 5 dias e desvio padrão de 1,5 dias, o histograma (\textbf{Figura 2}) demonstra que o fornecedor não é perfeitamente confiável.}
+
+\begin{itemize}
+    \item \textbf{Análise de Risco:} Sob a Seed 111, observaram-se ocorrências de entregas levando até \textbf{8 ou 9 dias}. Esses eventos de "cauda longa", embora menos frequentes, representam um desvio de quase 80\% sobre o prazo médio, capaz de consumir inteiramente qualquer estoque de segurança mal dimensionado.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{graficos/fig2_histograma_lead_time.png}
+    \caption{Histograma do Lead Time - Barra Laranja}
+    \label{fig:fig2}
+\end{figure}
+
+\subsection{Parâmetros de Entrada da Simulação}
+
+\textit{Para garantir a transparência da modelagem financeira, consolidam-se abaixo os parâmetros econômicos e operacionais utilizados para alimentar o algoritmo em Python:}
+
+\begin{table}[H]
+\centering
+\caption{Parâmetros de Entrada (Inputs)}
+\label{tab:parametros_entrada}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Parâmetro} & \textbf{Valor Adotado} & \textbf{Unidade} \\ \midrule
+\textbf{Demanda Média ($\mu_d$)} & 100 & un/dia \\
+\textbf{Desvio Padrão da Demanda ($\sigma_d$)} & 20 & un/dia \\
+\textbf{Lead Time Médio ($\mu_L$)} & 5 & dias \\
+\textbf{Desvio Padrão do Lead Time ($\sigma_L$)} & 1.5 & dias \\
+\textbf{Custo de Pedido ($S$)} & R\$ 150,00 & por pedido \\
+\textbf{Custo de Manutenção ($H$)} & R\$ 5,00 & un/ano \\
+\textbf{Custo de Falta ($Shortage$)} & R\$ 20,00 & un/falta \\
+\textbf{Nível de Serviço Alvo} & 95\% & ($Z \approx 1.645$) \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\section{Implementação Computacional (C3)}
+
+Para operacionalizar a análise proposta, desenvolveu-se um algoritmo de simulação em linguagem \textbf{Python}. O script foi estruturado para realizar uma \textbf{Simulação de Eventos Discretos (DES)} com incremento de tempo fixo (diário), permitindo a observação granular do comportamento do estoque ao longo de um horizonte de 365 dias.
+
+\subsection{Arquitetura e Bibliotecas}
+
+O ambiente de desenvolvimento utilizou as seguintes bibliotecas científicas para garantir a precisão dos cálculos:
+
+\begin{itemize}
+    \item \textbf{NumPy (numpy):} Utilizada para a geração de números pseudoaleatórios através da função numpy.random.RandomState, garantindo a estabilidade da semente (\textbf{Seed 111}) e a reprodutibilidade dos cenários estocásticos.
+    \item \textbf{SciPy (scipy.stats):} Empregada para o cálculo estatístico do Score Z (norm.ppf), fundamental para a definição precisa do fator de segurança dado o Nível de Serviço Alvo de 95\%.
+    \item \textbf{Matplotlib e Seaborn:} Utilizadas para a plotagem gráfica dos histogramas e curvas de evolução do estoque.
+\end{itemize}
+
+\subsection{Lógica do Motor de Simulação (simular\_estoque)}
+
+O núcleo do código reside na função simular\_estoque, que modela a dinâmica operacional do armazém. Diferente de planilhas estáticas, esta função implementa a distinção técnica entre \textbf{Estoque Físico} (disponível para venda) e \textbf{Estoque de Posição} (Físico + Pedidos em Trânsito).
+
+O algoritmo opera em um \textit{loop} diário seguindo a seguinte lógica sequencial:
+
+\begin{enumerate}
+    \item \textbf{Geração de Demanda:} A cada dia $t$, uma demanda $d_t$ é gerada seguindo uma distribuição Normal ($N=100, \sigma=20$), sendo arredondada para inteiros e limitada a valores não negativos.
+    \item \textbf{Consumo e Ruptura:} A demanda é subtraída do estoque físico.
+    \begin{itemize}
+        \item Se $Estoque < 0$, o sistema contabiliza o volume negativo como \textbf{Venda Perdida}, acumulando o custo de falta (total\_custo\_falta += abs(estoque) * custo\_falta) e registrando a ruptura no ciclo.
+    \end{itemize}
+    \item \textbf{Recebimento de Pedidos:} O sistema verifica se há um pedido pendente cuja data de chegada (dia\_chegada) coincide com o dia atual. Se sim, o lote $Q$ (EOQ) é adicionado ao estoque físico.
+    \item \textbf{Revisão e Ressuprimento (Gatilho):} A decisão de compra segue a política de Revisão Contínua $(s, Q)$. O algoritmo verifica a condição:
+    \[EstoquePosicao \leq ROP\]
+    Se verdadeira (e não houver pedido já pendente), um novo pedido é disparado. Neste momento, um \textit{Lead Time} estocástico é gerado ($N=5, \sigma=1.5$) para definir a data futura de chegada.
+\end{enumerate}
+
+\subsection{Definição dos Cenários no Código}
+
+A robustez da implementação permite testar diferentes políticas apenas alterando os parâmetros de entrada da função, mantendo a mesma sequência aleatória de eventos (graças à Seed 111):
+
+\begin{itemize}
+    \item \textbf{Cenário A:} Executado com ROP = Demanda\_Media * Lead\_Time\_Media (500 unidades).
+    \item \textbf{Cenário B:} Executado com ROP acrescido do Estoque de Segurança calculado pela fórmula do desvio padrão combinado, resultando em 757 unidades.
+\end{itemize}
+
+\subsection{Saída de Dados e Métricas}
+
+Ao final da execução, o algoritmo retorna um dicionário de dados contendo vetores diários (niveis, demandas) e escalares financeiros acumulados. O \textbf{Nível de Serviço} é calculado \textit{ex-post} pela razão entre o número de ciclos sem ruptura e o total de ciclos de ressuprimento realizados, oferecendo uma métrica de desempenho real e não apenas teórica.
+
+\section{Resultados, Cenários e Comparações}
+
+A execução da simulação computacional permitiu observar o comportamento dinâmico do sistema de estoques sob a influência das variáveis aleatórias modeladas (Seed 111). Nesta seção, comparam-se os indicadores de desempenho operacional e financeiro entre a política atual (Cenário A) e a proposta (Cenário B).
+
+\subsection{Consolidação dos Resultados}
+
+A Tabela 2 apresenta o resumo dos indicadores acumulados ao final do horizonte de simulação de 365 dias.
+
+\begin{table}[H]
+\centering
+\caption{Resultados Comparativos da Simulação (Seed 111)}
+\label{tab:resultados_comparativos}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Indicador} & \textbf{Cenário A (Determinístico)} & \textbf{Cenário B (Estocástico 95\%)} & \textbf{Variação (\%)} \\ \midrule
+\textbf{Ponto de Ressuprimento (ROP)} & 500 un. & \textbf{757 un.} & +51,4\% \\
+\textbf{Estoque de Segurança (SS)} & 0 un. & 257 un. & - \\
+\textbf{Custo de Pedido} & R\$ 3.600,00 & R\$ 3.600,00 & 0\% \\
+\textbf{Custo de Manutenção} & R\$ 3.666,30 & R\$ 4.923,82 & +34,3\% \\
+\textbf{Custo de Falta (Penalidade)} & \textbf{R\$ 45.060,00} & \textbf{R\$ 4.940,00} & \textbf{-89,0\%} \\
+\textbf{CUSTO TOTAL LOGÍSTICO} & \textbf{R\$ 52.326,30} & \textbf{R\$ 13.463,82} & \textbf{-74,3\%} \\
+\textbf{Nível de Serviço Real} & 70,8\% & 91,7\% & +29,5 p.p. \\ \bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Análise do Cenário A: O Colapso Determinístico}
+
+A política baseada apenas nas médias ($\mu_d=100, \mu_L=5$) mostrou-se incapaz de absorver a variabilidade do sistema.
+
+A \textbf{Figura 3} ilustra a evolução do estoque físico dia a dia. As áreas destacadas em vermelho representam períodos de ruptura (\textit{stockouts}). Observa-se que, sempre que o \textit{Lead Time} do fornecedor ultrapassou a média de 5 dias ou a demanda sofreu picos pontuais, o estoque de ciclo esgotou-se antes da chegada do ressuprimento.
+
+\begin{itemize}
+    \item \textbf{Consequência:} O sistema operou com um Nível de Serviço de apenas \textbf{70,8\%}, gerando um custo de falta astronômico de R\$ 45.060,00, que representa 86\% do custo total deste cenário.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{graficos/fig3_estoque_cenario_A.png}
+    \caption{Nível de Estoque Diário - Cenário A}
+    \label{fig:fig3}
+\end{figure}
+
+\textit{Legenda: Evolução do estoque no Cenário Determinístico, evidenciando múltiplas rupturas (áreas vermelhas) devido à ausência de proteção contra variabilidade.}
+
+\subsection{Análise do Cenário B: A Eficácia da Proteção}
+
+No Cenário B, o Ponto de Ressuprimento foi elevado para 757 unidades, incorporando um \textbf{Estoque de Segurança de 257 unidades}.
+
+A \textbf{Figura 4} demonstra visualmente o efeito "amortecedor" dessa política. Embora o estoque tenha flutuado significativamente devido à incerteza da demanda (Seed 111), o nível mínimo raramente cruzou a linha de zero. O estoque de segurança absorveu os atrasos do fornecedor, mantendo a continuidade operacional.
+
+\begin{itemize}
+    \item \textbf{Resultado:} O Nível de Serviço subiu para \textbf{91,7\%}, próximo ao alvo teórico de 95\%. A pequena discrepância deve-se à natureza finita da simulação (365 dias), onde eventos extremos de cauda na distribuição normal podem impactar a média amostral.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{graficos/fig4_estoque_cenario_B.png}
+    \caption{Nível de Estoque Diário - Cenário B}
+    \label{fig:fig4}
+\end{figure}
+
+\textit{Legenda: Evolução do estoque no Cenário Estocástico. O aumento do ROP protege a operação, mitigando quase totalmente as rupturas.}
+
+\subsection{Análise Econômica Comparativa}
+
+A \textbf{Figura 5} resume o impacto financeiro da decisão. Embora o Cenário B apresente um Custo de Manutenção 34\% maior (devido ao estoque médio mais elevado), essa despesa adicional funciona como um "prêmio de seguro".
+
+O investimento extra de aproximadamente R\$ 1.250,00 em estocagem evitou uma perda de mais de R\$ 40.000,00 em vendas e multas. O resultado global foi uma redução de \textbf{74,3\% no Custo Total Logístico}, validando a hipótese de que, em ambientes incertos, o custo da falta supera largamente o custo da sobra.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{graficos/fig5_comparacao_custos.png}
+    \caption{Comparação de Custos: Cenário A vs B}
+    \label{fig:fig5}
+\end{figure}
+
+\textit{Legenda: Decomposição dos custos logísticos. Nota-se a eliminação quase total do Custo de Falta no Cenário B.}
+
+\section{Tomada de Decisão e Análise de Trade-offs (C4)}
+
+A decisão logística não se resume à minimização de custos isolados, mas à gestão inteligente de riscos e compensações (\textit{trade-offs}). A simulação realizada permitiu construir a \textbf{Fronteira Eficiente} da operação, ferramenta essencial para alinhar a política de estoques com a estratégia financeira da empresa.
+
+\subsection{A Curva de Trade-off: Custo vs. Nível de Serviço}
+
+A \textbf{Figura 6} apresenta a relação não linear entre o investimento necessário em estoques e a disponibilidade garantida ao cliente. A análise da curva revela o fenômeno dos \textbf{retornos decrescentes}:
+
+\begin{enumerate}
+    \item \textbf{Zona de Eficiência (80\% a 95\%):} O custo total cresce de forma moderada para elevar o nível de serviço. O investimento marginal em estoque de segurança traz grandes ganhos em redução de rupturas.
+    \item \textbf{Zona de Custo Exponencial (> 96\%):} Ao tentar atingir níveis de serviço próximos a 100\%, a curva inclina-se verticalmente. Para eliminar o último 1\% de risco de falta, seria necessário um aumento desproporcional no capital imobilizado.
+\end{enumerate}
+
+\textbf{Decisão Estratégica:} A escolha do alvo de \textbf{95\%} (adotado no Cenário B) situa-se no "joelho" da curva, representando o ponto ótimo onde o custo de manutenção e o custo de falta se equilibram de forma mais vantajosa para a ElectroLog.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{graficos/fig6_tradeoff_servico_custo.png}
+    \caption{Curva de Trade-off}
+    \label{fig:fig6}
+\end{figure}
+
+\textit{Legenda: Fronteira eficiente da operação. O ponto destacado em vermelho (95\%) representa o equilíbrio ideal entre custo logístico total e nível de serviço.}
+
+\subsection{Análise de Sensibilidade: O Custo da Incerteza do Fornecedor}
+
+Enquanto a demanda do cliente é uma variável externa (mercado), a incerteza do fornecedor é uma variável interna da cadeia de suprimentos que pode ser gerenciada. A \textbf{Figura 7} isola o impacto do Desvio Padrão do Lead Time ($\sigma_L$) sobre a necessidade de Estoque de Segurança (SS).
+
+A simulação demonstra uma correlação direta e severa:
+
+\begin{itemize}
+    \item Com um fornecedor estável ($\sigma_L \approx 0$), o SS necessário seria mínimo (< 50 unidades).
+    \item Com a instabilidade atual ($\sigma_L = 1.5$), o SS sobe para 257 unidades.
+    \item Se a instabilidade piorar ($\sigma_L > 3$), o SS necessário para manter 95\% de serviço dobraria, tornando a operação financeiramente inviável.
+\end{itemize}
+
+\textbf{Insight Gerencial:} O gráfico prova que investir na homologação e desenvolvimento de fornecedores mais confiáveis (reduzindo $\sigma_L$) gera uma redução de custo de estoque mais efetiva do que apenas alterar o tamanho do lote de compra.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{graficos/fig7_impacto_incerteza_fornecedor.png}
+    \caption{Sensibilidade à Incerteza do Lead Time}
+    \label{fig:fig7}
+\end{figure}
+
+\textit{Legenda: Impacto da variabilidade do fornecedor no dimensionamento do armazém. A instabilidade do Lead Time exige aumentos exponenciais no Estoque de Segurança.}
+
+\subsection{Recomendação Final}
+
+Com base na análise quantitativa dos cenários e sensibilidades, recomenda-se:
+
+\begin{enumerate}
+    \item \textbf{Implantar a Política Estocástica:} Fixar o ROP em 757 unidades imediatas.
+    \item \textbf{Monitorar o Lead Time:} Estabelecer SLAs (\textit{Service Level Agreements}) com o fornecedor para reduzir o desvio padrão da entrega, visando reduzir o Estoque de Segurança no próximo ciclo de revisão.
+\end{enumerate}
+
+\section{Considerações sobre Comunicação e Reprodutibilidade (C5)}
+
+A validade de um estudo de Engenharia não reside apenas nos seus resultados, mas na capacidade de auditá-los e comunicá-los de forma clara para a tomada de decisão. Este projeto foi estruturado sob os princípios de transparência e reprodutibilidade científica.
+
+\subsection{Reprodutibilidade Técnica}
+
+Para garantir que a análise seja auditável e independente do analista, o código desenvolvido adota práticas rigorosas de Ciência de Dados:
+
+\begin{itemize}
+    \item \textbf{Controle de Aleatoriedade:} A utilização da semente fixa (\texttt{Seed 111}) na biblioteca \texttt{NumPy} assegura que a sequência de demandas e atrasos gerada seja idêntica em qualquer execução futura. Isso permite que a auditoria verifique exatamente os mesmos cenários de ruptura e recuperação de estoque apresentados neste relatório.
+    \item \textbf{Padronização:} O uso de bibliotecas padrão de mercado (\texttt{Pandas}, \texttt{Matplotlib}, \texttt{SciPy}) garante que o modelo possa ser executado em qualquer ambiente Python sem dependências proprietárias.
+    \item \textbf{Código Aberto:} O \textit{script} completo da simulação encontra-se disponível no \textbf{Apêndice A}, permitindo a verificação da lógica de cálculo dos custos e do nível de serviço.
+\end{itemize}
+
+\subsection{Comunicação para Tomada de Decisão}
+
+A complexidade estocástica foi traduzida em visualizações gerenciais intuitivas para facilitar a comunicação com \textit{stakeholders} não técnicos:
+
+\begin{itemize}
+    \item \textbf{Gráficos de "Dente de Serra" (Figuras 3 e 4):} Foram utilizados para demonstrar visualmente o risco. A marcação em vermelho das áreas negativas comunica instantaneamente o conceito de ruptura de estoque, sem necessidade de interpretação estatística complexa.
+    \item \textbf{Curva de Trade-off (Figura 6):} Serve como ferramenta de negociação entre os departamentos Financeiro e Comercial, explicitando quanto custa cada ponto percentual de melhoria no serviço ao cliente.
+\end{itemize}
+
+\section{Conclusão}
+
+O presente estudo validou, através de \textbf{Simulação de Eventos Discretos (DES)}, a superioridade da Política de Revisão Contínua $(s, Q)$ sob incerteza em detrimento da modelagem determinística clássica. A execução do algoritmo computacional (Seed 111) demonstrou que a premissa de normalidade nos parâmetros de entrada ($\mu_d, \mu_L$) não garante a estabilidade operacional quando se ignora a convolução das variâncias da demanda e do \textit{Lead Time}.
+
+A análise comparativa evidenciou que o modelo determinístico (Cenário A) é estruturalmente incapaz de absorver a estocasticidade do sistema. A variabilidade do fornecedor ($\sigma_L = 1.5$) provocou rupturas cíclicas que degradaram o Nível de Serviço para \textbf{70,8\%}, resultando em um Custo de Falta (\textit{Stockout Cost}) de R\$ 45.060,00, o que inviabiliza a operação sob a ótica da rentabilidade.
+
+Em contrapartida, a calibração do modelo estocástico (Cenário B) através da introdução de um \textbf{Estoque de Segurança de 257 unidades} provou ser a solução ótima para o \textit{trade-off} entre capital imobilizado e disponibilidade. Os resultados obtidos confirmam a hipótese inicial:
+
+\begin{enumerate}
+    \item \textbf{Eficiência Operacional:} O sistema atingiu um Nível de Serviço de \textbf{91,7\%}, estabilizando o atendimento mesmo diante de \textit{outliers} de demanda e atrasos de fornecimento.
+    \item \textbf{Otimização Financeira:} Houve uma redução de \textbf{74,3\% no Custo Total Logístico} (de R\$ 52.326,30 para R\$ 13.463,82), validando que o custo marginal de manutenção do estoque de segurança é significativamente inferior ao custo de oportunidade das vendas perdidas.
+\end{enumerate}
+
+Conclui-se que a implementação da política estocástica proposta posiciona a operação na região ótima da \textbf{Curva de Fronteira Eficiente}, mitigando riscos sistêmicos e garantindo a resiliência da cadeia de suprimentos sem incorrer em superdimensionamento de estoques (\textit{Overstock}).
+
+\end{document}
