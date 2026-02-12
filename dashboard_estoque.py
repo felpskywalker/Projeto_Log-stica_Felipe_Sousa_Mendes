@@ -238,4 +238,4 @@ with tab3:
 
 # Rodapé
 st.divider()
-st.caption("Desenvolvido para análise de Engenharia Logística. Projeto 1 - Turma de Verão 2026.")
+st.caption("Desenvolvido por Felipe Sousa Mendes. Projeto 1 - Turma de Verão 2026.")
