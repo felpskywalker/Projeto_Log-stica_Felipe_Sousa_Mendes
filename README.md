@@ -11,7 +11,7 @@ Acesse a simulação online:
 
 ## Estrutura do Projeto
 
-- **`etapa2_simulacao_estoque.py`**: Script principal da simulação (gera gráficos e dados).
+- **`simulacaoestoque.py`**: Script principal da simulação (gera gráficos e dados).
 - **`dashboard_estoque.py`**: Aplicação web interativa (Streamlit).
 - **`Relatorio_Final.tex`**: Código LaTeX do relatório técnico final.
 - **`graficos/`**: Pasta com as figuras geradas pela simulação.
